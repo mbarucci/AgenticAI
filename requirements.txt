@@ -1,6 +1,6 @@
-gradio
 fastapi
 uvicorn
-starlette
+gradio
 python-dotenv
 google-generativeai
+starlette

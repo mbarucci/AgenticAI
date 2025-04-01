@@ -1,10 +1,21 @@
 from fastapi import FastAPI
-from starlette.responses import HTMLResponse
 import gradio as gr
+from fastapi.middleware.cors import CORSMiddleware
+from gradio.routes import mount_gradio_app
 from agente_credito import avaliar_credito
 
-app = FastAPI()
+app = FastAPI(title="Agentic AI - Crédito")
 
+# Libera CORS (opcional, bom pra conectar com frontend no futuro)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Função de avaliação
 def executar_avaliacao(nome, score, renda, valor, contrato, ocupacao, tempo, observacoes, instrucoes):
     cliente = {
         "nome": nome,
@@ -18,6 +29,7 @@ def executar_avaliacao(nome, score, renda, valor, contrato, ocupacao, tempo, obs
 
     return avaliar_credito(cliente, observacoes, instrucoes)
 
+# Interface Gradio
 interface = gr.Interface(
     fn=executar_avaliacao,
     inputs=[
@@ -31,9 +43,10 @@ interface = gr.Interface(
         gr.Textbox(label="Observações"),
         gr.Textbox(label="Instruções para o agente", lines=4)
     ],
-    outputs=gr.Textbox(label="Resultado")
+    outputs=gr.Textbox(label="Resultado da IA"),
+    title="Análise de Crédito com IA",
+    description="Informe os dados do cliente e as instruções desejadas para o agente de crédito"
 )
 
-@app.get("/", response_class=HTMLResponse)
-def gradio_ui():
-    return interface.launch(prevent_thread_lock=True, inline=True)
+# Monta Gradio na rota /interface
+mount_gradio_app(app, interface, path="/interface")
