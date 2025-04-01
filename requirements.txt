@@ -1,4 +1,6 @@
-google-generativeai
-python-dotenv
+gradio
 fastapi
 uvicorn
+starlette
+python-dotenv
+google-generativeai

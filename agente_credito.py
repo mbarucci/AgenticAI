@@ -13,6 +13,7 @@ def aplicar_regras(score, renda, valor):
         limite = renda * 0.25
     else:
         return "reprovado", 0
+
     if valor <= limite:
         return "aprovado", limite
     else:
@@ -42,25 +43,33 @@ def modelo_preditivo(score, renda, valor, contrato):
     else:
         return "alto risco"
 
-def avaliar_credito(cliente: dict, observacoes: str = ""):
+def avaliar_credito(cliente: dict, observacoes: str = "", instrucoes: str = ""):
     model = genai.GenerativeModel('gemini-1.5-pro')
 
+    # 🧠 Extrai e garante os dados básicos
     nome = cliente.get("nome", "Não informado")
     score = cliente.get("score", 0)
     renda = cliente.get("renda", 0)
     valor = cliente.get("valor_solicitado", 0)
     contrato = cliente.get("contrato", "Não informado")
 
+    # ✅ Aplica as regras e modelo preditivo
     regra, limite = aplicar_regras(score, renda, valor)
     risco = modelo_preditivo(score, renda, valor, contrato)
 
+    # 💡 Calcula comprometimento da renda
+    comprometimento = (valor / renda) * 100 if renda else 0
+
+    # 🧾 Monta o prompt completo com instruções customizadas
     prompt = (
         f"Análise técnica:\n"
         f"- Resultado das regras: {regra} (limite de R$ {limite:.2f})\n"
         f"- Classificação do modelo preditivo: {risco}\n"
+        f"- Comprometimento da renda: {comprometimento:.2f}%\n"
         f"- Observações adicionais: {observacoes}\n\n"
-        f"Dados recebidos do cliente:\n{json.dumps(cliente, indent=2, ensure_ascii=False)}\n\n"
-        f"Com base nisso, explique de forma profissional e clara se o crédito foi aprovado, parcial ou reprovado."
+        f"Dados recebidos:\n{json.dumps(cliente, indent=2, ensure_ascii=False)}\n\n"
+        f"Instruções para o analista IA: {instrucoes}\n\n"
+        f"Com base nisso, forneça uma análise clara, profissional e personalizada para o cliente."
     )
 
     resposta = model.generate_content(prompt)
