@@ -1,12 +1,15 @@
 from fastapi import FastAPI
-import gradio as gr
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+import gradio as gr
 from gradio.routes import mount_gradio_app
 from agente_credito import avaliar_credito
 
-app = FastAPI(title="Agentic AI - Crédito")
+# 🔧 Inicializa FastAPI
+app = FastAPI(title="Agentic AI - Crédito", version="0.1.0")
 
-# Libera CORS (opcional, bom pra conectar com frontend no futuro)
+# Libera CORS (útil se for integrar com outros frontends)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Função de avaliação
+# 🧠 Função chamada pela IA
 def executar_avaliacao(nome, score, renda, valor, contrato, ocupacao, tempo, observacoes, instrucoes):
     cliente = {
         "nome": nome,
@@ -26,10 +29,9 @@ def executar_avaliacao(nome, score, renda, valor, contrato, ocupacao, tempo, obs
         "ocupacao": ocupacao,
         "tempo_de_servico": tempo
     }
-
     return avaliar_credito(cliente, observacoes, instrucoes)
 
-# Interface Gradio
+# 🧾 Interface visual (Gradio)
 interface = gr.Interface(
     fn=executar_avaliacao,
     inputs=[
@@ -48,5 +50,20 @@ interface = gr.Interface(
     description="Informe os dados do cliente e as instruções desejadas para o agente de crédito"
 )
 
-# Monta Gradio na rota /interface
+# 🔗 Monta Gradio em /interface
 mount_gradio_app(app, interface, path="/interface")
+
+# 📬 Modelo para requisição API REST
+class ClienteEntrada(BaseModel):
+    dados: dict
+    observacoes: str = ""
+    instrucoes: str = ""
+
+# 🚀 Endpoint REST: POST /avaliar
+@app.post("/avaliar")
+def avaliar(entrada: ClienteEntrada):
+    resultado = avaliar_credito(entrada.dados, entrada.observacoes, entrada.instrucoes)
+    return {
+        "cliente": entrada.dados.get("nome", "Desconhecido"),
+        "resultado": resultado
+    }
